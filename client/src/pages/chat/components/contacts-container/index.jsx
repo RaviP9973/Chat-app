@@ -40,7 +40,7 @@ const ContactsContainer = () => {
     getChannels();
   }, [setChannels,setDirectMessagesContacts]);
   return (
-    <div className="relative md:w-[35vw] lg:[30vw] xl:[20vw] bg-[#1b1c24] border-r-2 border-r-[#2f303b] w-full">
+    <div className="relative md:w-[25vw] lg:[30vw] xl:[20vw] bg-[#1b1c24] border-r-2 border-r-[#2f303b] w-full">
       <div className="pt-3">
         <Logo />
         <div className="my-5">

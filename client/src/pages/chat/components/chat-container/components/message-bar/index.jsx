@@ -7,11 +7,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { GrAttachment } from "react-icons/gr";
 import { IoSend } from "react-icons/io5";
 import { RiEmojiStickerLine } from "react-icons/ri";
+import { IoCloseSharp } from "react-icons/io5";
 
 const MessageBar = () => {
   const [message, setMessage] = useState("");
   const emojiRef = useRef();
   const fileInputRef = useRef();
+  const typingTimeoutRef = useRef(null);
 
 
 // app store hooks
@@ -21,7 +23,9 @@ const MessageBar = () => {
     userInfo,
     setIsUploading,
     setIsDownloading,
-    setFileUploadProgress
+    setFileUploadProgress,
+    replyingTo,
+    clearReplyingTo,
   } = useAppStore();
 
 
@@ -49,9 +53,46 @@ const MessageBar = () => {
     };
   }, [emojiRef]);
 
+  // Handle typing indicator
+  const handleTyping = () => {
+    if (selectedChatType === "contact" && socket) {
+      socket.emit("typing-start", { recipientId: selectedChatData._id });
+
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Set timeout to stop typing after 2 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("typing-stop", { recipientId: selectedChatData._id });
+      }, 2000);
+    }
+  };
+
+  // Clean up typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (selectedChatType === "contact" && socket) {
+        socket.emit("typing-stop", { recipientId: selectedChatData._id });
+      }
+    };
+  }, [selectedChatData, selectedChatType, socket]);
+
 
   // send message handlers
   const handleSendMessage = async () => {
+
+    // Stop typing indicator
+    if (selectedChatType === "contact" && socket) {
+      socket.emit("typing-stop", { recipientId: selectedChatData._id });
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }
 
     // single person chat 
     if (selectedChatType === "contact") {
@@ -61,6 +102,7 @@ const MessageBar = () => {
         recipient: selectedChatData._id,
         messageType: "text",
         fileUrl: undefined,
+        replyTo: replyingTo?._id || null,
       });
 
     }
@@ -75,10 +117,12 @@ const MessageBar = () => {
         messageType: "text",
         fileUrl: undefined,
         channelId: selectedChatData._id,
+        replyTo: replyingTo?._id || null,
       })
     }
     
     setMessage("");
+    clearReplyingTo();
   };
 
 
@@ -119,6 +163,7 @@ const MessageBar = () => {
               recipient: selectedChatData._id,
               messageType: "file",
               fileUrl: response.data.filePath,
+              replyTo: replyingTo?._id || null,
             });
           }
 
@@ -134,9 +179,11 @@ const MessageBar = () => {
               messageType: "file",
               fileUrl: response.data.filePath,
               channelId: selectedChatData._id,
+              replyTo: replyingTo?._id || null,
             })
 
           }
+          clearReplyingTo();
         }
       }
     } catch (error) {
@@ -146,60 +193,82 @@ const MessageBar = () => {
   };
   return (
     <div className="h-[10vh] bg-[#1c1d25] flex justify-center items-center px-8 mb-6 gap-6">
-      <div className="flex-1 flex bg-[#2a2b33] rounded-md items-center gap-5 pr-5">
-        {/* input for sending text messages*/}
-        <input
-          type="text"
-          className="flex-1 p-5 bg-transparent rounded-md focus:border-none focus:outline-none"
-          placeholder="Enter Message"
-          onChange={(e) => {
-            setMessage(e.target.value);
-          }}
-          value={message}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault(); // Prevent form submission
-              handleSendMessage();
-            }
-          }}
-        />
+      <div className="flex-1 flex flex-col bg-[#2a2b33] rounded-md">
+        {/* Reply preview */}
+        {replyingTo && (
+          <div className="flex items-center justify-between bg-[#1c1d25] px-4 py-2 border-b border-[#2a2b33]">
+            <div className="flex-1">
+              <div className="text-xs text-gray-400">
+                Replying to {replyingTo.sender?.firstName || "User"}
+              </div>
+              <div className="text-sm text-gray-300 truncate">
+                {replyingTo.content || "Attachment"}
+              </div>
+            </div>
+            <button
+              onClick={clearReplyingTo}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <IoCloseSharp className="text-xl" />
+            </button>
+          </div>
+        )}
 
-        {/* button for input */}
-        <button
-          className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
-          onClick={handleAttachmentClick}
-        >
-          <GrAttachment className="text-2xl" />
-        </button>
+        <div className="flex items-center gap-5 pr-5">
+          {/* input for sending text messages*/}
+          <input
+            type="text"
+            className="flex-1 p-5 bg-transparent rounded-md focus:border-none focus:outline-none"
+            placeholder="Enter Message"
+            onChange={(e) => {
+              setMessage(e.target.value);
+              handleTyping();
+            }}
+            value={message}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault(); // Prevent form submission
+                handleSendMessage();
+              }
+            }}
+          />
 
-          {/* input for sending files and images */}
-        <input
-          type="file"
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleAttachmentChange}
-        />
-
-        {/* emoji picker */}
-        <div className="ralative">
+          {/* button for input */}
           <button
             className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
-            onClick={() => {
-              setEmojiPickerOpen(true);
-            }}
+            onClick={handleAttachmentClick}
           >
-            <RiEmojiStickerLine className="text-2xl" />
+            <GrAttachment className="text-2xl" />
           </button>
-          <div className="absolute bottom-16 right-0 " ref={emojiRef}>
-            <EmojiPicker
-              theme="dark"
-              open={emojiPickerOpen}
-              onEmojiClick={handleAddEmoji}
-              autoFocusSearch={false}
-            />
+
+          {/* input for sending files and images */}
+          <input
+            type="file"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleAttachmentChange}
+          />
+
+          {/* emoji picker */}
+          <div className="ralative">
+            <button
+              className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
+              onClick={() => {
+                setEmojiPickerOpen(true);
+              }}
+            >
+              <RiEmojiStickerLine className="text-2xl" />
+            </button>
+            <div className="absolute bottom-16 right-0 " ref={emojiRef}>
+              <EmojiPicker
+                theme="dark"
+                open={emojiPickerOpen}
+                onEmojiClick={handleAddEmoji}
+                autoFocusSearch={false}
+              />
+            </div>
           </div>
         </div>
-
       </div>
 
       {/* send button */}

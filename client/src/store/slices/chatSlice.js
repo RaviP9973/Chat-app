@@ -17,6 +17,32 @@ export const createChatSlice = (set, get) => ({
   channels: [],
   setChannels: (channels) => set({ channels }),
 
+  // Online status state
+  onlineUsers: [],
+  setOnlineUsers: (users) => set({ onlineUsers: users }),
+  addOnlineUser: (userId) => {
+    const onlineUsers = get().onlineUsers;
+    if (!onlineUsers.includes(userId)) {
+      set({ onlineUsers: [...onlineUsers, userId] });
+    }
+  },
+  removeOnlineUser: (userId) => {
+    const onlineUsers = get().onlineUsers;
+    set({ onlineUsers: onlineUsers.filter((id) => id !== userId) });
+  },
+
+  // Typing indicators state
+  typingUsers: {},
+  setTypingUser: (userId, isTyping) => {
+    const typingUsers = get().typingUsers;
+    set({ typingUsers: { ...typingUsers, [userId]: isTyping } });
+  },
+
+  // Reply state
+  replyingTo: null,
+  setReplyingTo: (message) => set({ replyingTo: message }),
+  clearReplyingTo: () => set({ replyingTo: null }),
+
   setDirectMessagesContacts: (directMessagesContacts) =>
     set({ directMessagesContacts }),
   addChannel: (channel) => {
@@ -55,6 +81,15 @@ export const createChatSlice = (set, get) => ({
               : message.sender._id,
         },
       ],
+    });
+  },
+
+  deleteMessage: (messageId) => {
+    const selectedChatMessages = get().selectedChatMessages;
+    set({
+      selectedChatMessages: selectedChatMessages.map((msg) =>
+        msg._id === messageId ? { ...msg, isDeleted: true } : msg
+      ),
     });
   },
 

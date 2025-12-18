@@ -35,6 +35,13 @@ const setupSocket = (server) => {
     const messageData = await Message.findById(createdMessage._id)
       .populate("sender", "id email firstName lastName image color")
       .populate("recipient", "id email firstName lastName image color")
+      .populate({
+        path: "replyTo",
+        populate: {
+          path: "sender",
+          select: "id email firstName lastName image color"
+        }
+      })
       .exec();
 
     if (recipentSocketId) {
@@ -50,7 +57,7 @@ const setupSocket = (server) => {
 
   // send message functionality to send messages to channels.
   const sendMessageToChannel = async (message) => {
-    const { channelId, sender, content, messageType, fileUrl } = message;
+    const { channelId, sender, content, messageType, fileUrl, replyTo } = message;
 
     // Create message and update channel in parallel
     const [createdMessage, channel] = await Promise.all([
@@ -61,13 +68,21 @@ const setupSocket = (server) => {
         messageType,
         timestamp: new Date(),
         fileUrl,
+        replyTo,
       }),
       Channel.findById(channelId).populate("members")
     ]);
 
     // Get populated message data
     const messageData = await Message.findById(createdMessage._id)
-      .populate("sender", "id email firstName lastName image color");
+      .populate("sender", "id email firstName lastName image color")
+      .populate({
+        path: "replyTo",
+        populate: {
+          path: "sender",
+          select: "id email firstName lastName image color"
+        }
+      });
 
     // Update channel messages array
     await Channel.findByIdAndUpdate(channelId, { 
@@ -96,6 +111,9 @@ const setupSocket = (server) => {
     if (userId) {
       userSocketMap.set(userId, socket.id);
       console.log(`User ${userId} connected`);
+      
+      // Broadcast to all users that this user is now online
+      io.emit("user-online", userId);
     } else {
       console.log("User ID not provided");
     }
@@ -104,8 +122,71 @@ const setupSocket = (server) => {
     socket.on("sendMessage", sendMessage);
     socket.on("send-channel-message", sendMessageToChannel);
 
-    socket.on("disconnect", (socket) => {
+    // Handle typing indicator
+    socket.on("typing-start", ({ recipientId }) => {
+      const recipientSocketId = userSocketMap.get(recipientId);
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit("user-typing-start", userId);
+      }
+    });
+
+    socket.on("typing-stop", ({ recipientId }) => {
+      const recipientSocketId = userSocketMap.get(recipientId);
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit("user-typing-stop", userId);
+      }
+    });
+
+    // Handle message deletion
+    socket.on("delete-message", async ({ messageId, recipientId, channelId }) => {
+      try {
+        const message = await Message.findById(messageId);
+        if (message && message.sender.toString() === userId) {
+          message.isDeleted = true;
+          message.deletedAt = new Date();
+          await message.save();
+
+          // Emit to recipient in DM
+          if (recipientId) {
+            const recipientSocketId = userSocketMap.get(recipientId);
+            if (recipientSocketId) {
+              io.to(recipientSocketId).emit("message-deleted", { messageId });
+            }
+          }
+
+          // Emit to channel members
+          if (channelId) {
+            const channel = await Channel.findById(channelId).populate("members");
+            if (channel?.members) {
+              const socketIds = channel.members
+                .map(member => userSocketMap.get(member._id.toString()))
+                .concat(userSocketMap.get(channel.admin._id.toString()))
+                .filter(Boolean);
+
+              socketIds.forEach(socketId => {
+                io.to(socketId).emit("message-deleted", { messageId });
+              });
+            }
+          }
+
+          // Emit back to sender
+          const senderSocketId = userSocketMap.get(userId);
+          if (senderSocketId) {
+            io.to(senderSocketId).emit("message-deleted", { messageId });
+          }
+        }
+      } catch (error) {
+        console.error("Error deleting message:", error);
+      }
+    });
+
+    // Send list of online users to the newly connected user
+    socket.emit("online-users", Array.from(userSocketMap.keys()));
+
+    socket.on("disconnect", () => {
       disconnect(socket, userId);
+      // Broadcast to all users that this user is now offline
+      io.emit("user-offline", userId);
     });
   });
 };

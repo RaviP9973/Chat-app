@@ -47,3 +47,35 @@ export const getMessages = async (req, res) => {
       return res.status(500).send("Internal server error");
     }
   }
+
+  export const deleteMessage = async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const userId = req.userId;
+
+      if (!messageId) {
+        return res.status(400).send("Message ID is required");
+      }
+
+      const message = await Message.findById(messageId);
+
+      if (!message) {
+        return res.status(404).send("Message not found");
+      }
+
+      // Check if the user is the sender of the message
+      if (message.sender.toString() !== userId) {
+        return res.status(403).send("You can only delete your own messages");
+      }
+
+      // Soft delete: mark as deleted instead of removing from database
+      message.isDeleted = true;
+      message.deletedAt = new Date();
+      await message.save();
+
+      return res.status(200).json({ message: "Message deleted successfully", messageId });
+    } catch (error) {
+      console.log("error in deleteMessage controller:", error);
+      return res.status(500).send("Internal server error");
+    }
+  }

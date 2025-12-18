@@ -29,6 +29,7 @@ export const GET_ALL_CONTACTS_ROUTE = `${CONTACT_ROUTES}/get-all-contacts`;
 //Messages Routes
 export const GET_ALL_MESSAGES_ROUTE = `${MESSAGES_ROUTES}/get-messages`;
 export const UPLOAD_FILE_ROUTE = `${MESSAGES_ROUTES}/upload-file`;
+export const DELETE_MESSAGE_ROUTE = `${MESSAGES_ROUTES}/delete-message`;
 
 
 

@@ -14,7 +14,7 @@ const PrivateRoute = ({ children }) => {
   const { userInfo } = useAppStore();
   if (userInfo === undefined) {
     // Optionally, add a loading spinner if data is still being fetched
-    return <div>Loading...</div>;
+    return <div className="inset-0 h-full w-full flex items-center justify-center"><span class="loader"></span></div>;
   }
   const isAuthenticated = !!userInfo;
   // console.log("isAuthenticated",isAuthenticated);
@@ -44,7 +44,9 @@ function App() {
           // console.log(response.data);
           setUserInfo(response.data); // Update user info instead of calling the function again
         } else {
+          
           setUserInfo(null);
+          throw new Error("Failed to fetch user data");
         }
       } catch (error) {
         console.warn("Error fetching user data:", error);
@@ -60,7 +62,7 @@ function App() {
   }, [userInfo]); // Removed `setUserInfo` to avoid unnecessary re-renders
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="inset-0 h-[100vh] w-full flex items-center justify-center"><span class="loader"></span></div>;
   }
 
   return (

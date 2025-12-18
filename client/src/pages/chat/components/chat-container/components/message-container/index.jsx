@@ -12,8 +12,12 @@ import { IoMdArrowRoundDown } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getColor } from "@/lib/utils";
+import { FiTrash2 } from "react-icons/fi";
+import { BsReply } from "react-icons/bs";
+import { useSocket } from "@/context/SocketContext";
 
 const MessageContainer = () => {
+  const socket = useSocket();
   const {
     selectedChatType,
     selectedChatData,
@@ -23,11 +27,37 @@ const MessageContainer = () => {
     isDownloading,
     setIsDownloading,
     setFileDownloadProgress,
+    typingUsers,
+    setReplyingTo,
   } = useAppStore(); //appstore
   const scrollRef = useRef();
 
   const [showImage, setShowImage] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
+
+  // Check if the selected user is typing
+  const isTyping =
+    selectedChatType === "contact" && typingUsers[selectedChatData?._id];
+
+  // Handle message deletion
+  const handleDeleteMessage = (messageId) => {
+    if (socket && selectedChatData) {
+      const recipientId = selectedChatType === "contact" ? selectedChatData._id : null;
+      const channelId = selectedChatType === "channel" ? selectedChatData._id : null;
+      
+      socket.emit("delete-message", {
+        messageId,
+        recipientId,
+        channelId,
+      });
+    }
+  };
+
+  // Handle reply
+  const handleReplyMessage = (message) => {
+    setReplyingTo(message);
+  };
 
   // download file and image function
   const downloadFile = async (url) => {
@@ -88,68 +118,129 @@ const MessageContainer = () => {
 
   const renderDMMessages = (message) => {
     // console.log("message.messageType", message.messageType);
+    const isOwnMessage = message.sender !== selectedChatData._id;
+
+    if (message.isDeleted) {
+      return (
+        <div
+          className={`${isOwnMessage ? "text-right" : "text-left"}`}
+        >
+          <div className="bg-[#2a2b33]/50 text-gray-500 italic border border-gray-600 inline-block p-4 rounded my-1 max-w-[50%] break-words whitespace-normal">
+            This message was deleted
+          </div>
+          <div className="text-xs text-gray-600">
+            {moment(message.timestamp).format("LT")}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div
-        className={`${
-          message.sender === selectedChatData._id ? "text-left" : "text-right"
-        }`}
+        className={`${isOwnMessage ? "text-right" : "text-left"} group relative mb-2`}
+        onMouseEnter={() => setHoveredMessageId(message._id)}
+        onMouseLeave={() => setHoveredMessageId(null)}
       >
-        {/* message type is TEXT */}
-        {message.messageType === "text" && (
+        {/* Reply preview */}
+        {message.replyTo && (
           <div
-            className={`${
-              message.sender !== selectedChatData._id
-                ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                : "bg-[#212b33]/5  text-white/80 border-white/20 "
-            } border inline-block p-4 rounded my-1 max-w-1/2 break-words`}
+            className={`text-xs mb-1 ${
+              isOwnMessage ? "mr-2" : "ml-2"
+            } inline-block max-w-[50%]`}
           >
-            {message.content}
+            <div className="bg-[#1c1d25] border-l-2 border-[#8417ff] p-2 rounded opacity-70">
+              <div className="text-gray-400 text-[10px]">
+                {message.replyTo.sender?.firstName || "User"}
+              </div>
+              <div className="text-gray-300 truncate">
+                {message.replyTo.content || "Attachment"}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* message type is FILE */}
-        {message.messageType === "file" && (
-          <div
-            className={`${
-              message.sender !== selectedChatData._id
-                ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                : "bg-[#212b33]/5  text-white/80 border-white/20 "
-            } border inline-block p-4 rounded my-1 max-w-1/2 break-words`}
-          >
-            {checkIfImage(message.fileUrl) ? (
-              <div
-                className="cursor-pointer"
-                onClick={() => {
-                  setShowImage(true);
-                  setImageUrl(message.fileUrl);
-                }}
+        <div className="relative inline-block">
+          {/* Action buttons */}
+          {hoveredMessageId === message._id && (
+            <div
+              className="absolute -top-2 -right-2 flex gap-1 bg-[#2a2b33] p-1 rounded shadow-lg z-10"
+            >
+              <button
+                onClick={() => handleReplyMessage(message)}
+                className="p-1.5 hover:bg-[#8417ff]/20 rounded transition-colors"
+                title="Reply"
               >
-                <img
-                  src={`${HOST}/${message.fileUrl}`}
-                  alt="file"
-                  className="h-[300px] w-[300px] object-cover"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-4">
-                <span className="text-white/8 text-3xl bg-black/20 rounded-full p-3">
-                  <MdFolderZip />
-                </span>
-                <span>{message.fileUrl.split("/").pop()}</span>
-                <span
-                  className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                <BsReply className="text-sm text-gray-300" />
+              </button>
+              {isOwnMessage && (
+                <button
+                  onClick={() => handleDeleteMessage(message._id)}
+                  className="p-1.5 hover:bg-red-500/20 rounded transition-colors"
+                  title="Delete"
+                >
+                  <FiTrash2 className="text-sm text-red-400" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* message type is TEXT */}
+          {message.messageType === "text" && (
+            <div
+              className={`${
+                isOwnMessage
+                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
+                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
+              } border inline-block p-4 rounded my-1  break-words whitespace-normal`}
+            >
+              {message.content}
+            </div>
+          )}
+
+          {/* message type is FILE */}
+          {message.messageType === "file" && (
+            <div
+              className={`${
+                isOwnMessage
+                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
+                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
+              } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+            >
+              {checkIfImage(message.fileUrl) ? (
+                <div
+                  className="cursor-pointer"
                   onClick={() => {
-                    downloadFile(message.fileUrl);
+                    setShowImage(true);
+                    setImageUrl(message.fileUrl);
                   }}
                 >
-                  {" "}
-                  <IoMdArrowRoundDown />{" "}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+                  <img
+                    src={`${HOST}/${message.fileUrl}`}
+                    alt="file"
+                    className="h-[300px] w-[300px] object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-4">
+                  <span className="text-white/8 text-3xl bg-black/20 rounded-full p-3">
+                    <MdFolderZip />
+                  </span>
+                  <span>{message.fileUrl.split("/").pop()}</span>
+                  <span
+                    className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                    onClick={() => {
+                      downloadFile(message.fileUrl);
+                    }}
+                  >
+                    {" "}
+                    <IoMdArrowRoundDown />{" "}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="text-xs text-gray-600">
           {moment(message.timestamp).format("LT")}
         </div>
@@ -158,67 +249,161 @@ const MessageContainer = () => {
   };
 
   const renderChannelMessages = (message) => {
+    const isOwnMessage = message.sender._id === userInfo.id;
+
+    if (message.isDeleted) {
+      return (
+        <div
+          className={`mt-5 ${
+            isOwnMessage ? "text-right" : "text-left"
+          }`}
+        >
+          <div className="bg-[#2a2b33]/50 text-gray-500 italic border border-gray-600 inline-block p-4 rounded my-1 max-w-[50%] break-words whitespace-normal ml-9">
+            This message was deleted
+          </div>
+          {!isOwnMessage && (
+            <div className="flex items-center justify-start gap-3">
+              <Avatar className="h-8 w-8 rounded-full overflow-hidden">
+                {message?.sender?.image && (
+                  <AvatarImage
+                    src={`${HOST}/${message?.sender?.image}`}
+                    alt="profile"
+                    className="object-cover w-12 h-12 bg-black rounded-full"
+                  />
+                )}
+                <AvatarFallback
+                  className={`uppercase h-8 w-8 text-lg border-[1px] flex items-center justify-center rounded-full ${getColor(
+                    message?.sender?.color
+                  )}`}
+                >
+                  {message.sender.firstName
+                    ? message?.sender?.firstName.split("").shift()
+                    : message?.sender?.email.split("").shift()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-white/60">{`${message.sender.firstName} ${message.sender.lastName}`}</span>
+              <span className="text-xs text-white/60">
+                {moment(message.timestamp).format("LT")}
+              </span>
+            </div>
+          )}
+          {isOwnMessage && (
+            <div className="text-xs text-white/60 mt-1">
+              {moment(message.timestamp).format("LT")}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
         className={`mt-5 ${
-          message.sender._id !== userInfo.id ? "text-left" : "text-right"
-        }`}
+          isOwnMessage ? "text-right" : "text-left"
+        } group relative mb-2`}
+        onMouseEnter={() => setHoveredMessageId(message._id)}
+        onMouseLeave={() => setHoveredMessageId(null)}
       >
-        {message.messageType === "text" && (
+        {/* Reply preview */}
+        {message.replyTo && (
           <div
-            className={`${
-              message.sender._id === userInfo.id
-                ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                : "bg-[#212b33]/5  text-white/80 border-white/20 "
-            } border inline-block p-4 rounded my-1 max-w-1/2 break-words ml-9`}
+            className={`text-xs mb-1 ${
+              isOwnMessage ? "mr-11" : "ml-11"
+            } inline-block max-w-[50%]`}
           >
-            {message.content}
+            <div className="bg-[#1c1d25] border-l-2 border-[#8417ff] p-2 rounded opacity-70">
+              <div className="text-gray-400 text-[10px]">
+                {message.replyTo.sender?.firstName || "User"}
+              </div>
+              <div className="text-gray-300 truncate">
+                {message.replyTo.content || "Attachment"}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* message type is FILE */}
-        {message.messageType === "file" && (
-          <div
-            className={`${
-              message.sender._id === userInfo.id
-                ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                : "bg-[#212b33]/5  text-white/80 border-white/20 "
-            } border inline-block p-4 rounded my-1 max-w-1/2 break-words`}
-          >
-            {checkIfImage(message.fileUrl) ? (
-              <div
-                className="cursor-pointer"
-                onClick={() => {
-                  setShowImage(true);
-                  setImageUrl(message.fileUrl);
-                }}
+        <div className="relative inline-block">
+          {/* Action buttons */}
+          {hoveredMessageId === message._id && (
+            <div
+              className="absolute -top-2 -right-2 flex gap-1 bg-[#2a2b33] p-1 rounded shadow-lg z-10"
+            >
+              <button
+                onClick={() => handleReplyMessage(message)}
+                className="p-1.5 hover:bg-[#8417ff]/20 rounded transition-colors"
+                title="Reply"
               >
-                <img
-                  src={`${HOST}/${message.fileUrl}`}
-                  alt="file"
-                  className="h-[300px] w-[300px] object-cover"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-4">
-                <span className="text-white/8 text-3xl bg-black/20 rounded-full p-3">
-                  <MdFolderZip />
-                </span>
-                <span>{message.fileUrl.split("/").pop()}</span>
-                <span
-                  className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                <BsReply className="text-sm text-gray-300" />
+              </button>
+              {isOwnMessage && (
+                <button
+                  onClick={() => handleDeleteMessage(message._id)}
+                  className="p-1.5 hover:bg-red-500/20 rounded transition-colors"
+                  title="Delete"
+                >
+                  <FiTrash2 className="text-sm text-red-400" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {message.messageType === "text" && (
+            <div
+              className={`${
+                isOwnMessage
+                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
+                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
+              } border inline-block p-4 rounded my-1 max-w-[50%] break-words whitespace-normal ml-9`}
+            >
+              {message.content}
+            </div>
+          )}
+
+          {/* message type is FILE */}
+          {message.messageType === "file" && (
+            <div
+              className={`${
+                isOwnMessage
+                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
+                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
+              } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+            >
+              {checkIfImage(message.fileUrl) ? (
+                <div
+                  className="cursor-pointer"
                   onClick={() => {
-                    downloadFile(message.fileUrl);
+                    setShowImage(true);
+                    setImageUrl(message.fileUrl);
                   }}
                 >
-                  {" "}
-                  <IoMdArrowRoundDown />{" "}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-        {message.sender._id !== userInfo.id ? (
+                  <img
+                    src={`${HOST}/${message.fileUrl}`}
+                    alt="file"
+                    className="h-[300px] w-[300px] object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-4">
+                  <span className="text-white/8 text-3xl bg-black/20 rounded-full p-3">
+                    <MdFolderZip />
+                  </span>
+                  <span>{message.fileUrl.split("/").pop()}</span>
+                  <span
+                    className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                    onClick={() => {
+                      downloadFile(message.fileUrl);
+                    }}
+                  >
+                    {" "}
+                    <IoMdArrowRoundDown />{" "}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {!isOwnMessage ? (
           <div className="flex items-center justify-start gap-3">
             <Avatar className="h-8 w-8  rounded-full overflow-hidden ">
               {message?.sender?.image && (
@@ -300,8 +485,20 @@ const MessageContainer = () => {
     }
   }, [selectedChatData, selectedChatType, setSelectedChatMessages]);
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 px-8 md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hidden p-4 px-8 md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">
       {renderMessages()}
+      {/* Typing Indicator */}
+      {isTyping && selectedChatType === "contact" && (
+        <div className="text-left mt-2">
+          <div className="bg-[#212b33]/5 text-white/60 border border-white/20 inline-block px-4 py-2 rounded">
+            <div className="flex items-center gap-1">
+              <span className="animate-bounce">●</span>
+              <span className="animate-bounce delay-100">●</span>
+              <span className="animate-bounce delay-200">●</span>
+            </div>
+          </div>
+        </div>
+      )}
       <div ref={scrollRef}></div>
       {showImage && (
         <div className="fixed z-[1000] top-0 left-0 h-[100vh] w-[100vw] flex items-center justify-center backdrop-blur-lg flex-col">

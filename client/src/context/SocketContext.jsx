@@ -20,12 +20,6 @@ export const SocketProvider = ({ children }) => {
       });
 
 
-      //i will use it when i have to show online status in chat list
-      
-      // socket.current.on("connect", () => {
-      //   // console.log("Connected to the socket server");
-      // });
-
       //listening for incoming messages
       const handleRecieveMessage = (message) => {
         const { selectedChatData, selectedChatType, addMessage,addContactsInDmContacts } =
@@ -58,6 +52,39 @@ export const SocketProvider = ({ children }) => {
         addChannelInChannelList(message);
       };
 
+      // Handle online users
+      const handleOnlineUsers = (users) => {
+        const { setOnlineUsers } = useAppStore.getState();
+        setOnlineUsers(users);
+      };
+
+      const handleUserOnline = (userId) => {
+        const { addOnlineUser } = useAppStore.getState();
+        addOnlineUser(userId);
+      };
+
+      const handleUserOffline = (userId) => {
+        const { removeOnlineUser } = useAppStore.getState();
+        removeOnlineUser(userId);
+      };
+
+      // Handle typing indicators
+      const handleUserTypingStart = (userId) => {
+        const { setTypingUser } = useAppStore.getState();
+        setTypingUser(userId, true);
+      };
+
+      const handleUserTypingStop = (userId) => {
+        const { setTypingUser } = useAppStore.getState();
+        setTypingUser(userId, false);
+      };
+
+      // Handle message deletion
+      const handleMessageDeleted = ({ messageId }) => {
+        const { deleteMessage } = useAppStore.getState();
+        deleteMessage(messageId);
+      };
+
 
 
 
@@ -65,6 +92,18 @@ export const SocketProvider = ({ children }) => {
       socket.current.on("recieveMessage", handleRecieveMessage);
 
       socket.current.on("recieve-channel-message", handleRecieveChannelMessage);
+
+      // Online status listeners
+      socket.current.on("online-users", handleOnlineUsers);
+      socket.current.on("user-online", handleUserOnline);
+      socket.current.on("user-offline", handleUserOffline);
+
+      // Typing indicator listeners
+      socket.current.on("user-typing-start", handleUserTypingStart);
+      socket.current.on("user-typing-stop", handleUserTypingStop);
+
+      // Message deletion listener
+      socket.current.on("message-deleted", handleMessageDeleted);
 
       return () => {
         socket.current.disconnect();
