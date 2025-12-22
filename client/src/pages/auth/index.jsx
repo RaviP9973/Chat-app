@@ -109,7 +109,7 @@ const Auth = () => {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "http://localhost:5173/auth",
+        callbackURL: "https://chat-app-lime-delta.vercel.app/auth",
       });
 
       // The social sign-in will redirect to Google and back
