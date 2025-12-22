@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { IoLogOut } from "react-icons/io5";
 import { toast } from "sonner";
 import apiClient from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 
 const ProfileInfo = () => {
   const navigate = useNavigate();
@@ -22,14 +23,31 @@ const ProfileInfo = () => {
 
   const logout = async () => {
     try {
-      const res = await apiClient.post(LOGOUT_ROUTE, {}, { withCredentials: true });
-      // console.log("res",res);
-      if (res.status === 200) {
-        navigate("/auth");
-        setUserInfo(null);
+      console.log("logout clicked");
+      const toastId = toast.loading("Logging out...");
+      
+      const { error } = await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            setUserInfo(null);
+            toast.dismiss(toastId);
+            toast.success("Logged out successfully");
+            navigate("/auth");
+          },
+          onError: (ctx) => {
+            toast.dismiss(toastId);
+            toast.error(ctx.error.message || "Failed to logout");
+          },
+        },
+      });
+
+      if (error) {
+        toast.dismiss(toastId);
+        toast.error(error.message || "Failed to logout");
+        return;
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
       toast.error("Failed to logout");
     }
   };

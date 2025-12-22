@@ -8,6 +8,8 @@ import contactRoute from "./routes/ContactRoutes.js"
 import setupSocket from "./socket.js"
 import messageRoutes from "./routes/MessagesRoute.js"
 import channelRoute from "./routes/channelRoutes.js"
+import { toNodeHandler } from "better-auth/node";
+
 
 dotenv.config();
 
@@ -26,13 +28,22 @@ app.use('/uploads/files', express.static('uploads/files'));
 app.use(cookieParser());
 app.use(express.json());
 
+// Connect to database FIRST
+await connect();
 
-app.use("/api/auth",authRoutes)
-app.use("/api/contacts",contactRoute) 
-app.use("/api/messages",messageRoutes);
-app.use("/api/channel",channelRoute);
-connect();
-const server = app.listen(port,() => {
+// Import auth AFTER database connection
+const { auth } = await import("./config/auth.js");
+
+// Better-auth routes (fixed pattern)
+app.all('/api/auth/*', toNodeHandler(auth));
+
+// User management routes
+app.use("/api/users", authRoutes);
+app.use("/api/contacts", contactRoute);
+app.use("/api/messages", messageRoutes);
+app.use("/api/channel", channelRoute);
+
+const server = app.listen(port, () => {
     console.log(`server is running at port ${port}`)
 })
 

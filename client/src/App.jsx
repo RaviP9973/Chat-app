@@ -1,12 +1,10 @@
-import { Button } from "@/components/ui/button";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Auth from "./pages/auth";
 import Profile from "./pages/profile";
 import Chat from "./pages/chat";
 import { useEffect, useState } from "react";
 import { useAppStore } from "./store";
-import apiClient from "./lib/api-client";
-import { GET_USER_INFO } from "./utils/constants";
+import { authClient } from "./lib/auth-client";
 
 const PrivateRoute = ({ children }) => {
   // console.log("yaha pe aaya uhu");
@@ -29,37 +27,46 @@ const AuthRoute = ({ children }) => {
 
 function App() {
   const { userInfo, setUserInfo } = useAppStore();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getUserData = async () => {
-      setLoading(true);
-      try {
-        // console.log("Fetching user info...");
-        const response = await apiClient.get(GET_USER_INFO, {
-          withCredentials: true,
-        });
+      try {        
+        // Add a small delay to allow OAuth callback to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const session = await authClient.getSession();
 
-        if (response.status === 200 && response.data.id) {
-          // console.log(response.data);
-          setUserInfo(response.data); // Update user info instead of calling the function again
+        // console.log("Session response:", session);
+        if (session?.data?.user) {
+          // console.log("Session user found:", session.data.user);
+          setUserInfo(session.data.user);
         } else {
-          
+          console.log("No active session");
           setUserInfo(null);
-          throw new Error("Failed to fetch user data");
         }
       } catch (error) {
-        console.warn("Error fetching user data:", error);
+        console.warn("Error fetching session:", error);
         setUserInfo(null);
       } finally {
         setLoading(false);
       }
     };
 
-    if (!userInfo) {
+    getUserData();
+    
+    // Re-check session when window regains focus (after OAuth redirect)
+    const handleFocus = () => {
+      // console.log("Window focused, rechecking session...");
       getUserData();
-    }
-  }, [userInfo]); // Removed `setUserInfo` to avoid unnecessary re-renders
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []); // Run only once on mount
 
   if (loading) {
     return <div className="inset-0 h-[100vh] w-full flex items-center justify-center"><span class="loader"></span></div>;
