@@ -30,7 +30,20 @@ export const auth = betterAuth({
             redirectURI: `${process.env.VITE_SERVER_URL}/api/auth/callback/google`,
         }, 
     },
-    trustedOrigins: [process.env.ORIGIN],
+    trustedOrigins: process.env.ORIGIN ? process.env.ORIGIN.split(',').map(o => o.trim()) : [],
+    advanced: {
+        useSecureCookies: process.env.NODE_ENV === "production",
+        cookiePrefix: "better_auth",
+        crossSubDomainCookies: {
+            enabled: false,
+        },
+    },
+    session: {
+        cookieCache: {
+            enabled: true,
+            maxAge: 5 * 60, // 5 minutes
+        },
+    },
     user: {
         modelName: "users",
         additionalFields: {
