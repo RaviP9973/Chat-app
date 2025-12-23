@@ -16,8 +16,13 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Parse ORIGIN environment variable (can be comma-separated for multiple origins)
+const allowedOrigins = process.env.ORIGIN 
+    ? process.env.ORIGIN.split(',').map(origin => origin.trim())
+    : ['http://localhost:5173'];
+
 app.use(cors({
-    origin:[process.env.ORIGIN],
+    origin: allowedOrigins,
     methods:["GET", "POST", "PUT","PATCH","DELETE"],
     credentials:true,
 }))

@@ -3,9 +3,14 @@ import Message from "./models/messageModel.js";
 import Channel from "./models/channelModel.js";
 
 const setupSocket = (server) => {
+  // Parse ORIGIN environment variable
+  const allowedOrigins = process.env.ORIGIN 
+    ? process.env.ORIGIN.split(',').map(origin => origin.trim())
+    : ['http://localhost:5173'];
+
   const io = new SocketIoServer(server, {
     cors: {
-      origin: process.env.ORIGIN,
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true,
     },
