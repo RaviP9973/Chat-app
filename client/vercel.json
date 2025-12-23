@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://chat-app-0l34.onrender.com/api/:match*"
+    }
+  ]
+}
