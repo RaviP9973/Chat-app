@@ -17,9 +17,9 @@ const app = express();
 const port = process.env.PORT || 3001;
 app.set('trust proxy', true);
 app.use(cors({
-    origin:[process.env.ORIGIN],
-    methods:["GET", "POST", "PUT","PATCH","DELETE"],
-    credentials:true,
+    origin: [process.env.ORIGIN, "https://chat-app-lime-delta.vercel.app"],
+    methods: ["GET", "POST", "PUT","PATCH","DELETE"],
+    credentials: true,
 }))
 
 app.use('/uploads/profiles', express.static('uploads/profiles'));

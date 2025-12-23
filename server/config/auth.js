@@ -18,7 +18,7 @@ async function getMongoDatabase() {
 export const auth = betterAuth({
     database: mongodbAdapter(await getMongoDatabase()),
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL: process.env.ORIGIN,
+    baseURL: process.env.VITE_SERVER_URL || process.env.ORIGIN,
     trustedOrigins: [process.env.ORIGIN, "https://chat-app-lime-delta.vercel.app"],
     emailAndPassword: {
         enabled: true,
@@ -32,12 +32,8 @@ export const auth = betterAuth({
             redirectURI: `${process.env.VITE_SERVER_URL}/api/auth/callback/google`,
         }, 
     },
-    trustedOrigins: [process.env.ORIGIN,"https://chat-app-lime-delta.vercel.app"],
     advanced: {
         useSecureCookies: process.env.NODE_ENV === "production",
-        crossSubDomainCookies: {
-            enabled: false,
-        },
         cookieOptions: {
             sameSite: "none",
             secure: true,

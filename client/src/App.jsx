@@ -37,7 +37,7 @@ function App() {
         
         const session = await authClient.getSession();
 
-        // console.log("Session response:", session);
+        console.log("Session response:", session);
         if (session?.data?.user) {
           // console.log("Session user found:", session.data.user);
           setUserInfo(session.data.user);
