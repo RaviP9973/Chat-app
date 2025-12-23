@@ -13,27 +13,27 @@ const ContactsContainer = () => {
   useEffect(() => {
     const getContacts = async () => {
       try {
-        const res = await apiClient.get(GET_DM_CONTACTS_ROUTE, {
-          withCredentials: true,
-        });
+        const res = await apiClient.get(GET_DM_CONTACTS_ROUTE);
         if (res.data.contacts) {
           // console.log(res.data.contacts);
           setDirectMessagesContacts(res.data.contacts);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("Error fetching contacts:", error);
+      }
     };
 
     const getChannels = async () => {
       try {
         // console.log("inside the get channels function");
-        const res = await apiClient.get(GET_USER_CHANNELS_ROUTE, {
-          withCredentials: true,
-        });
+        const res = await apiClient.get(GET_USER_CHANNELS_ROUTE);
         if (res.data.channels) {
           // console.log(res.data.contacts);
           setChannels(res.data.channels);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("Error fetching channels:", error);
+      }
     };
 
     getContacts();

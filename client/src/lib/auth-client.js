@@ -1,6 +1,7 @@
 import { createAuthClient } from "better-auth/react"
+import { HOST } from "@/utils/constants"
 
 export const authClient = createAuthClient({
-    baseURL: window.location.origin,
+    baseURL: HOST,
     credentials: "include",
 })

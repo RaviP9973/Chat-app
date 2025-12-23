@@ -4,6 +4,8 @@ export const verifyToken = async (req, res, next) => {
         const { auth } = await import("../config/auth.js");
         
         // Get the session from better-auth
+        console.log("Verifying token with headers:", req.headers);
+        
         const session = await auth.api.getSession({
             headers: req.headers
         });
