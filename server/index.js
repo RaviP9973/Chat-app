@@ -15,7 +15,7 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
-
+app.set('trust proxy', true);
 app.use(cors({
     origin:[process.env.ORIGIN],
     methods:["GET", "POST", "PUT","PATCH","DELETE"],

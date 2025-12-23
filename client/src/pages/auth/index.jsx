@@ -6,8 +6,6 @@ import { TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import apiClient from "@/lib/api-client";
-import { LOGIN_ROUTES, SIGNUP_ROUTES } from "@/utils/constants";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store";
 import { authClient } from "@/lib/auth-client";
