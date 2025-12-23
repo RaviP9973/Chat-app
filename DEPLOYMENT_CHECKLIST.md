@@ -2,10 +2,25 @@
 
 ## ✅ Fixed in Code
 
-1. **auth-client.js** - Now correctly points to backend HOST
-2. **Middleware** - Added detailed logging for debugging
-3. **CORS** - Already configured to allow Vercel frontend
-4. **Auth config** - trustedOrigins includes Vercel URL
+1. **api-client.js** - Now uses `window.location.origin` to go through Vercel proxy
+2. **auth-client.js** - Correctly uses `window.location.origin`
+3. **vercel.json** - Proxies all `/api/*` requests to Render backend
+4. **Auth config** - baseURL set to ORIGIN (Vercel URL)
+5. **Middleware** - Added detailed logging for debugging
+6. **CORS** - Configured to allow Vercel frontend
+
+## 🏗️ Architecture
+
+**With Vercel Proxy:**
+```
+Browser → https://chat-app-lime-delta.vercel.app/api/contacts/...
+         ↓ (Vercel proxy via vercel.json)
+         → https://chat-app-0l34.onrender.com/api/contacts/...
+         ↓ (Response with cookies for Vercel domain)
+Browser ← Cookies set on .vercel.app domain
+```
+
+**All requests go through Vercel**, which proxies to Render. Cookies are set on the Vercel domain.
 
 ## ⚠️ CRITICAL: Environment Variables
 

@@ -18,7 +18,7 @@ async function getMongoDatabase() {
 export const auth = betterAuth({
     database: mongodbAdapter(await getMongoDatabase()),
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL: process.env.VITE_SERVER_URL || process.env.ORIGIN,
+    baseURL: process.env.ORIGIN,
     trustedOrigins: [process.env.ORIGIN, "https://chat-app-lime-delta.vercel.app"],
     emailAndPassword: {
         enabled: true,
