@@ -29,7 +29,6 @@ export const auth = betterAuth({
             clientId: process.env.GOOGLE_CLIENT_ID , 
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             redirectURI: `${process.env.VITE_SERVER_URL}/api/auth/callback/google`,
-            callbackURL: `${process.env.ORIGIN}/auth`,
         }, 
     },
     trustedOrigins: [process.env.ORIGIN],

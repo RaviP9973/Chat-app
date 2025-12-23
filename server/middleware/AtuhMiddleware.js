@@ -8,6 +8,8 @@ export const verifyToken = async (req, res, next) => {
             headers: req.headers
         });
 
+        console.log("Session in middleware:", session);
+
         if (!session || !session.user) {
             return res.status(401).json({ 
                 error: "You are not authorized",
