@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 // Create MongoDB client connection for better-auth
@@ -30,20 +31,7 @@ export const auth = betterAuth({
             redirectURI: `${process.env.VITE_SERVER_URL}/api/auth/callback/google`,
         }, 
     },
-    trustedOrigins: process.env.ORIGIN ? process.env.ORIGIN.split(',').map(o => o.trim()) : [],
-    advanced: {
-        useSecureCookies: process.env.NODE_ENV === "production",
-        cookiePrefix: "better_auth",
-        crossSubDomainCookies: {
-            enabled: false,
-        },
-    },
-    session: {
-        cookieCache: {
-            enabled: true,
-            maxAge: 5 * 60, // 5 minutes
-        },
-    },
+    trustedOrigins: [process.env.ORIGIN],
     user: {
         modelName: "users",
         additionalFields: {

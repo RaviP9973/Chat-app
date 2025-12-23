@@ -109,7 +109,7 @@ const Auth = () => {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: `${import.meta.env.VITE_CLIENT_URL || window.location.origin}/auth`,
+        callbackURL: `${window.location.origin}/auth`,
       });
 
       // The social sign-in will redirect to Google and back

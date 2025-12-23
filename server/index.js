@@ -16,26 +16,10 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Parse ORIGIN environment variable (can be comma-separated for multiple origins)
-const allowedOrigins = process.env.ORIGIN 
-    ? process.env.ORIGIN.split(',').map(origin => origin.trim())
-    : ['http://localhost:5173'];
-
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('Origin not allowed by CORS:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin:[process.env.ORIGIN],
     methods:["GET", "POST", "PUT","PATCH","DELETE"],
     credentials:true,
-    exposedHeaders: ['set-cookie'],
 }))
 
 app.use('/uploads/profiles', express.static('uploads/profiles'));
