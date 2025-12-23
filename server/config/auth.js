@@ -2,6 +2,10 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { MongoClient } from "mongodb";
 
+import dotenv from "dotenv";
+
+dotenv.config();
+
 // Create MongoDB client connection for better-auth
 const client = new MongoClient(process.env.MONGODB_URL);
 
