@@ -32,6 +32,12 @@ export const auth = betterAuth({
         }, 
     },
     trustedOrigins: [process.env.ORIGIN],
+    advanced: {
+        useSecureCookies: process.env.NODE_ENV === "production",
+        crossSubDomainCookies: {
+            enabled: true,
+        },
+    },
     user: {
         modelName: "users",
         additionalFields: {
