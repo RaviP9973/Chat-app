@@ -4,13 +4,17 @@ export const verifyToken = async (req, res, next) => {
         const { auth } = await import("../config/auth.js");
         
         // Get the session from better-auth
-        console.log("Verifying token with headers:", req.headers);
+        console.log("=== Auth Middleware Debug ===");
+        console.log("Request URL:", req.url);
+        console.log("Request method:", req.method);
+        console.log("Cookies:", req.cookies);
+        console.log("Authorization header:", req.headers.authorization);
         
         const session = await auth.api.getSession({
             headers: req.headers
         });
 
-        console.log("Session in middleware:", session);
+        console.log("Session result:", JSON.stringify(session, null, 2));
 
         if (!session || !session.user) {
             return res.status(401).json({ 

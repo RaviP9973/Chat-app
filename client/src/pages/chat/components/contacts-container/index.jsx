@@ -18,9 +18,7 @@ const ContactsContainer = () => {
           // console.log(res.data.contacts);
           setDirectMessagesContacts(res.data.contacts);
         }
-      } catch (error) {
-        console.error("Error fetching contacts:", error);
-      }
+      } catch (error) {}
     };
 
     const getChannels = async () => {
@@ -31,9 +29,7 @@ const ContactsContainer = () => {
           // console.log(res.data.contacts);
           setChannels(res.data.channels);
         }
-      } catch (error) {
-        console.error("Error fetching channels:", error);
-      }
+      } catch (error) {}
     };
 
     getContacts();
