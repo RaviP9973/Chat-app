@@ -22,6 +22,18 @@ const messageSchema = new mongoose.Schema({
       return this.messageType === "text";
     },
   },
+  iv: {
+    type: String,
+    required: function () {
+      return this.messageType === "text";
+    }
+  },
+  authTag: {
+    type: String,
+    required: function () {
+      return this.messageType === "text";
+    }
+  },
   fileUrl: {
     type: String,
     required:function(){

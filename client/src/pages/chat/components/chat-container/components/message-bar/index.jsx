@@ -94,8 +94,14 @@ const MessageBar = () => {
       }
     }
 
+    // content 
+    if(!message && !fileUrl){
+      return ;
+    }
     // single person chat 
     if (selectedChatType === "contact") {
+
+
       socket.emit("sendMessage", {
         sender: userInfo.id,
         content: message,
@@ -152,14 +158,14 @@ const MessageBar = () => {
           }
         });
         setIsUploading(false);
-
+        console.log("file upload response in message bar", response);
         if (response.status === 200 && response.data) {
 
           // single person chat file upload
           if (selectedChatType === "contact") {
             socket.emit("sendMessage", {
               sender: userInfo.id,
-              content: undefined,
+              content: null,
               recipient: selectedChatData._id,
               messageType: "file",
               fileUrl: response.data.filePath,

@@ -1,6 +1,7 @@
 import { Server as SocketIoServer } from "socket.io";
 import Message from "./models/messageModel.js";
 import Channel from "./models/channelModel.js";
+import { decryptMessage, encryptMessage } from "./utils/encryption.js";
 
 const setupSocket = (server) => {
   // Parse ORIGIN environment variable
@@ -34,8 +35,13 @@ const setupSocket = (server) => {
   const sendMessage = async (message) => {
     const senderSocketId = userSocketMap.get(message.sender);
     const recipentSocketId = userSocketMap.get(message.recipient);
-
-    const createdMessage = await Message.create(message);
+    const { iv, content: encryptedContent, authTag } = encryptMessage(message.content);
+    const createdMessage = await Message.create({
+      ...message,
+      content: encryptedContent,
+      iv,
+      authTag
+    });
 
     const messageData = await Message.findById(createdMessage._id)
       .populate("sender", "id email firstName lastName image color")
@@ -49,14 +55,23 @@ const setupSocket = (server) => {
       })
       .exec();
 
+      const decryptedContent = decryptMessage({
+        iv: messageData.iv,
+        content: messageData.content,
+        authTag: messageData.authTag
+      });
+
+      // remove iv and authTag from messageData before sending
+      delete messageData._doc.iv;
+      delete messageData._doc.authTag;
     if (recipentSocketId) {
       // console.log("inside recipentSocketId");
-      io.to(recipentSocketId).emit("recieveMessage", messageData);
+      io.to(recipentSocketId).emit("recieveMessage", { ...messageData._doc, content: decryptedContent });
     }
 
     if (senderSocketId) {
       // console.log("inside senderSocketId");
-      io.to(senderSocketId).emit("recieveMessage", messageData);
+      io.to(senderSocketId).emit("recieveMessage", { ...messageData._doc, content: decryptedContent });
     }
   };
 
@@ -64,12 +79,17 @@ const setupSocket = (server) => {
   const sendMessageToChannel = async (message) => {
     const { channelId, sender, content, messageType, fileUrl, replyTo } = message;
 
+    const { iv, content: encryptedContent, authTag } = encryptMessage(message.content);
+
+
     // Create message and update channel in parallel
     const [createdMessage, channel] = await Promise.all([
       Message.create({
         sender,
         recipient: null,
-        content,
+        content: encryptedContent,
+        iv,
+        authTag,
         messageType,
         timestamp: new Date(),
         fileUrl,
@@ -88,13 +108,18 @@ const setupSocket = (server) => {
           select: "id email firstName lastName image color"
         }
       });
+    const decryptedContent = decryptMessage({
+      iv: messageData.iv,
+      content: messageData.content,
+      authTag: messageData.authTag
+    });
 
     // Update channel messages array
     await Channel.findByIdAndUpdate(channelId, { 
       $push: {messages: createdMessage._id}
     });
 
-    const finalData = { ...messageData._doc, channelId: channel._id };
+    const finalData = { ...messageData._doc, content: decryptedContent, channelId: channel._id };
 
     if (channel?.members) {
       // Get all socket IDs including admin
