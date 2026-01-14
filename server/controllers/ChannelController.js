@@ -2,6 +2,7 @@
 import User from "../models/userModel.js";
 import Channel from "../models/channelModel.js";
 import mongoose from "mongoose";
+import { decryptMessage } from "../utils/encryption.js";
 
 //Controller for creating a new channel
 export const createChannel = async (req, res) => {
@@ -104,9 +105,23 @@ export const getChannelMessages = async (req, res) => {
       return res.status(404).send("channel not found");
     }
 
-    const messages = channel.messages;
+    const decryptedMessages = channel.messages.map((msg) => {
+      if (msg.isDeleted) {
+        return msg; // Skip decryption for deleted messages
+      }
+      const decryptedContent = decryptMessage({
+        iv: msg.iv,
+        content: msg.content,
+        authTag: msg.authTag,
+      });
+
+      // console.log("decryptedContent", decryptedContent);
+      delete msg._doc.iv;
+      delete msg._doc.authTag;
+      return { ...msg._doc, content: decryptedContent };
+    });
     return res.status(201).json({
-      messages,
+      messages: decryptedMessages,
     });
   } catch (error) {
     console.log(error);

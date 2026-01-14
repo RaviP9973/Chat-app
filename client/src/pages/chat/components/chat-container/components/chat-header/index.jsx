@@ -6,6 +6,7 @@ import { HOST } from "@/utils/constants";
 import React, { useEffect } from "react";
 import { RiCloseFill } from "react-icons/ri";
 import { CiCirclePlus } from "react-icons/ci";
+import NewDm from "../../../contacts-container/components/new-dm";
 
 const ChatHeader = () => {
   const { closeChat, selectedChatData, selectedChatType, onlineUsers, typingUsers } = useAppStore();
@@ -84,13 +85,15 @@ const ChatHeader = () => {
           </button>
 
           {selectedChatType === "channel" && (
-            <Button 
-              className="text-white hover:text-white/80 focus:outline-none transition-colors duration-300 flex items-center gap-2 "
-              aria-label="Add member to channel"
-            >
-              <span>Add Member</span>
-              <CiCirclePlus className="text-3xl" />
-            </Button>
+            // <Button 
+            //   className="text-white hover:text-white/80 focus:outline-none transition-colors duration-300 flex items-center gap-2 "
+            //   aria-label="Add member to channel"
+            //   onClick={handleAddMember}
+            // >
+            //   <span>Add Member</span>
+            //   <CiCirclePlus className="text-3xl" />
+            // </Button>
+            <NewDm isChannelHeader={true} channelId={selectedChatData._id} />
           )}
         </div>
       </div>

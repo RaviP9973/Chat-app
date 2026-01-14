@@ -35,6 +35,7 @@ const MessageContainer = () => {
   const [showImage, setShowImage] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
   // Check if the selected user is typing
   const isTyping =
@@ -43,9 +44,11 @@ const MessageContainer = () => {
   // Handle message deletion
   const handleDeleteMessage = (messageId) => {
     if (socket && selectedChatData) {
-      const recipientId = selectedChatType === "contact" ? selectedChatData._id : null;
-      const channelId = selectedChatType === "channel" ? selectedChatData._id : null;
-      
+      const recipientId =
+        selectedChatType === "contact" ? selectedChatData._id : null;
+      const channelId =
+        selectedChatType === "channel" ? selectedChatData._id : null;
+
       socket.emit("delete-message", {
         messageId,
         recipientId,
@@ -95,6 +98,14 @@ const MessageContainer = () => {
   };
 
   const renderMessages = () => {
+    if (loadingMessages) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <span className="loader"></span>
+        </div>
+      );
+    }
+
     let lastDate = null;
     // console.log("selected chat messages", selectedChatMessages);
     return selectedChatMessages.map((message, index) => {
@@ -122,10 +133,8 @@ const MessageContainer = () => {
 
     if (message.isDeleted) {
       return (
-        <div
-          className={`${isOwnMessage ? "text-right" : "text-left"}`}
-        >
-          <div className="bg-[#2a2b33]/50 text-gray-500 italic border border-gray-600 inline-block p-4 rounded my-1 max-w-[50%] break-words whitespace-normal">
+        <div className={`${isOwnMessage ? "text-right" : "text-left"}`}>
+          <div className="bg-[#2a2b33]/50 text-gray-500 italic border border-gray-600 inline-block p-4 rounded my-1 max-w-[40vw] break-words">
             This message was deleted
           </div>
           <div className="text-xs text-gray-600">
@@ -137,7 +146,9 @@ const MessageContainer = () => {
 
     return (
       <div
-        className={`${isOwnMessage ? "text-right" : "text-left"} group relative mb-2`}
+        className={`${
+          isOwnMessage ? "text-right" : "text-left"
+        } group relative mb-2`}
         onMouseEnter={() => setHoveredMessageId(message._id)}
         onMouseLeave={() => setHoveredMessageId(null)}
       >
@@ -159,12 +170,10 @@ const MessageContainer = () => {
           </div>
         )}
 
-        <div className="relative inline-block">
+        <div className="relative inline-block max-w-[40vw]">
           {/* Action buttons */}
           {hoveredMessageId === message._id && (
-            <div
-              className="absolute -top-2 -right-2 flex gap-1 bg-[#2a2b33] p-1 rounded shadow-lg z-10"
-            >
+            <div className="absolute -top-2 -right-2 flex gap-1 bg-[#2a2b33] p-1 rounded shadow-lg z-10">
               <button
                 onClick={() => handleReplyMessage(message)}
                 className="p-1.5 hover:bg-[#8417ff]/20 rounded transition-colors"
@@ -189,9 +198,9 @@ const MessageContainer = () => {
             <div
               className={`${
                 isOwnMessage
-                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
-              } border inline-block p-4 rounded my-1  break-words whitespace-normal`}
+                  ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                  : "bg-[#212b33]/5 text-white/80 border-white/20"
+              } border p-4 rounded my-1`}
             >
               {message.content}
             </div>
@@ -202,9 +211,9 @@ const MessageContainer = () => {
             <div
               className={`${
                 isOwnMessage
-                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
-              } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+                  ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                  : "bg-[#212b33]/5 text-white/80 border-white/20"
+              } border p-4 rounded my-1`}
             >
               {checkIfImage(message.fileUrl) ? (
                 <div
@@ -253,12 +262,8 @@ const MessageContainer = () => {
 
     if (message.isDeleted) {
       return (
-        <div
-          className={`mt-5 ${
-            isOwnMessage ? "text-right" : "text-left"
-          }`}
-        >
-          <div className="bg-[#2a2b33]/50 text-gray-500 italic border border-gray-600 inline-block p-4 rounded my-1 max-w-[50%] break-words whitespace-normal ml-9">
+        <div className={`mt-5 ${isOwnMessage ? "text-right" : "text-left"}`}>
+          <div className={`bg-[#2a2b33]/50 text-gray-500 italic border border-gray-600 inline-block p-4 rounded my-1 max-w-[40vw] break-words ${!isOwnMessage ? 'ml-9' : ''}`}>
             This message was deleted
           </div>
           {!isOwnMessage && (
@@ -277,8 +282,8 @@ const MessageContainer = () => {
                   )}`}
                 >
                   {message.sender.firstName
-                    ? message?.sender?.firstName.split("").shift()
-                    : message?.sender?.email.split("").shift()}
+                    && message?.sender?.firstName.split("").shift()
+                    }
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm text-white/60">{`${message.sender.firstName} ${message.sender.lastName}`}</span>
@@ -322,12 +327,10 @@ const MessageContainer = () => {
           </div>
         )}
 
-        <div className="relative inline-block">
+        <div className="relative inline-block max-w-[40vw]">
           {/* Action buttons */}
           {hoveredMessageId === message._id && (
-            <div
-              className="absolute -top-2 -right-2 flex gap-1 bg-[#2a2b33] p-1 rounded shadow-lg z-10"
-            >
+            <div className="absolute -top-2 -right-2 flex gap-1 bg-[#2a2b33] p-1 rounded shadow-lg z-10">
               <button
                 onClick={() => handleReplyMessage(message)}
                 className="p-1.5 hover:bg-[#8417ff]/20 rounded transition-colors"
@@ -351,9 +354,9 @@ const MessageContainer = () => {
             <div
               className={`${
                 isOwnMessage
-                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
-              } border inline-block p-4 rounded my-1 max-w-[50%] break-words whitespace-normal ml-9`}
+                  ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                  : "bg-[#212b33]/5 text-white/80 border-white/20"
+              } border p-4 rounded my-1 ${!isOwnMessage ? 'ml-9' : ''}`}
             >
               {message.content}
             </div>
@@ -364,9 +367,9 @@ const MessageContainer = () => {
             <div
               className={`${
                 isOwnMessage
-                  ? "bg-[#8417ff]/5  text-[#8417ff]/90 border-[#8417ff]/50 "
-                  : "bg-[#212b33]/5  text-white/80 border-white/20 "
-              } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+                  ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                  : "bg-[#212b33]/5 text-white/80 border-white/20"
+              } border p-4 rounded my-1`}
             >
               {checkIfImage(message.fileUrl) ? (
                 <div
@@ -420,8 +423,8 @@ const MessageContainer = () => {
                 )}`}
               >
                 {message.sender.firstName
-                  ? message?.sender?.firstName.split("").shift()
-                  : message?.sender?.email.split("").shift()}
+                  && message?.sender?.firstName.split("").shift()
+                  }
               </AvatarFallback>
             </Avatar>
             <span className="text-sm text-white/60 ">{`${message.sender.firstName} ${message.sender.lastName}`}</span>
@@ -448,6 +451,7 @@ const MessageContainer = () => {
   useEffect(() => {
     const getMessages = async () => {
       try {
+        setLoadingMessages(true);
         const res = await apiClient.post(
           GET_ALL_MESSAGES_ROUTE,
           { id: selectedChatData._id },
@@ -459,21 +463,26 @@ const MessageContainer = () => {
         }
       } catch (error) {
         console.log(error);
+      } finally {
+        setLoadingMessages(false);
       }
     };
 
     const getChannelMessages = async () => {
       try {
+        setLoadingMessages(true);
         const response = await apiClient.get(
           `${GET_CHANNEL_MESSAGES_ROUTE}/${selectedChatData._id}`,
           { withCredentials: true }
         );
-         console.log("response of get channel messages", response);
-        if(response.data.messages){
+        console.log("response of get channel messages", response);
+        if (response.data.messages) {
           setSelectedChatMessages(response.data.messages);
         }
       } catch (error) {
         console.log("error getting channel messages", error);
+      } finally {
+        setLoadingMessages(false);
       }
     };
     if (selectedChatData._id) {

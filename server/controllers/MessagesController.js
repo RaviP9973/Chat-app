@@ -29,7 +29,7 @@ export const getMessages = async (req, res) => {
         authTag: msg.authTag,
       });
 
-      console.log("decryptedContent", decryptedContent);
+      // console.log("decryptedContent", decryptedContent);
       delete msg._doc.iv;
       delete msg._doc.authTag;
       return { ...msg._doc, content: decryptedContent };

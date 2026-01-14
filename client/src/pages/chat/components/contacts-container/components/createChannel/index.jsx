@@ -23,6 +23,7 @@ import apiClient from "@/lib/api-client";
 import { useAppStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import MultipleSelector from "@/components/ui/multipleselect";
+import { toast } from "sonner";
 
 const CreateChannel = () => {
   const { setSelectedChatType, setSelectedChatData, addChannel } =
@@ -73,7 +74,10 @@ const CreateChannel = () => {
             addChannel(response.data.channel);
         }
       }
-    } catch (error) {}
+    } catch (error) {
+      toast.error("Error creating channel. Please try again.");
+      console.log("Error creating channel:", error);
+    }
   };
 
   return (

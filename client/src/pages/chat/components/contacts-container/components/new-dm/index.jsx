@@ -17,14 +17,15 @@ import {
 import { Input } from "@/components/ui/input";
 import Lottie from "lottie-react";
 import animationData from "@/assets/searchContactsAnimation";
-import { HOST, SEARCH_CONTACTS_ROUTE } from "@/utils/constants";
+import { ADD_MEMBER_TO_CHANNEL_ROUTE, HOST, SEARCH_CONTACTS_ROUTE } from "@/utils/constants";
 import apiClient from "@/lib/api-client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { useAppStore } from "@/store";
 import { getColor } from "@/lib/utils";
+import { toast } from "sonner";
 
-const NewDm = () => {
+const NewDm = ({ isChannelHeader, channelId }) => {
   const { setSelectedChatType, setSelectedChatData } = useAppStore();
 
   const [openNewContactModal, setOpenNewContactModal] = useState(false);
@@ -73,6 +74,24 @@ const NewDm = () => {
     setSelectedChatData(contact);
     setSearchedContacts([]);
   };
+
+  const addNewMemberToChannel = async (contact) => {
+    try {
+      const res = await apiClient.post(ADD_MEMBER_TO_CHANNEL_ROUTE, {
+        channelId,
+        memberId: contact._id
+      }, { withCredentials: true });
+
+      if(res.status === 200) {
+        setOpenNewContactModal(false);
+        setSearchedContacts([]);
+        toast.success(contact.firstName + " added to channel successfully.");
+      }
+    } catch (error) {
+      console.error("Error adding new member to channel:", error);
+      toast.error("Failed to add new member to channel.");
+    }
+  }
   return (
     <div>
       <TooltipProvider>
@@ -84,7 +103,9 @@ const NewDm = () => {
             />
           </TooltipTrigger>
           <TooltipContent className="bg-[#1c1b1e] border-none mb-2 p-3 text-white">
-            Select new Contact
+            {isChannelHeader
+              ? "Add new member"
+              : "Select new Contact"}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -115,7 +136,9 @@ const NewDm = () => {
                   <div
                     key={index}
                     className="flex gap-3 items-center cursor-pointer"
-                    onClick={() => selectNewContact(contacts)}
+                    onClick={() => {
+                      isChannelHeader ? addNewMemberToChannel(contacts) : selectNewContact(contacts);
+                    }}
                   >
                     <div className="w-12 h-12 relative">
                       <Avatar className="h-12 w-12  rounded-full overflow-hidden ">
